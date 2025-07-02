@@ -20,19 +20,19 @@ if conf.verbose:
 
 ## How it works
 
-🔧 **1. Declare your configuration** by inheriting from `ConfigModel`. Use nested pydantic-models for nested data (i.e. toml table).
+🔧 **1. Declare your configuration** by inheriting from `ConfigModel`. Use nested pydantic-models for nested configuration data (aka toml-tables).
 
 ```python
 from pydantic import BaseModel, Field
 from typesave_config import ConfigModel
 
-class MyAppConfig_LoginData(BaseModel):
+class MyAppConfig_Login(BaseModel):
     username: str
     password: str = Field(..., min_length=6)
 
 class MyAppConfig(ConfigModel):
-    login: MyAppConfig_LoginData
-    url: str = Field("https://example.com/", description="url to log in")
+    login: MyAppConfig_Login
+    url: str 
     verbose: bool = True
 ```
 
@@ -40,18 +40,18 @@ class MyAppConfig(ConfigModel):
 A defined, or secretly missing, value in a config-file can be overwritten by the cli-interface.
 
 ```python
-conf = MyAppConfig.load(toml_files=['myconf.toml'], data={"verbose": False})
+conf = MyAppConfig.load(toml_files=['myconf.toml'])
 ```
 
 🔧 **3. Access key/value pairs the fully pydantic/typed way**, including intellisense support in your favorite IDE, like vscode or PyCharm. Your configuration is basically a [pydantic-model](https://docs.pydantic.dev/latest/concepts/models/), so you are free to specify each [field](https://docs.pydantic.dev/latest/api/fields/) with defaults, description, validating conditions and much more. All the hard stuff will be handled by pydantic's [BaseModel](https://docs.pydantic.dev/latest/api/base_model/).
 
 ```python
 if conf.verbose:
-    print(f"login user {conf.login.username}")
+    print(f"user {conf.login.username} logged in")
 conf.url="https://a.com/" # raises error at runtime, when set to be readonly (the default)
 ```
 
-🔧 **4. Use the cli-interface for secreets** and other runtime arguments, that should really not included in a config-file. Think about database-connections, username, password, api-keys, etc. Hint: `list`and `dict` themselves can't be set by the cli-interface 🤷. However, nested data is provided 😄
+🔧 **4. Use the cli-interface for secreets** and other data, that should not be included in the config-files. Think of database-connections, username, password, api-keys, etc. Hint: `list`and `dict` themselves can't be set by the cli-interface 🤷. However, nested pydantic-models are supported 😄
 
 ```bash
 TSC_LOGIN__USERNAME="root" python main.py --tsc_login__password="12345678"
