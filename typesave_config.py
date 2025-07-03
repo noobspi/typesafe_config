@@ -1,10 +1,10 @@
 import os
 from pathlib import Path
+import logging
 import tomllib
 import json
 from typing import TypeVar, Type, get_args, Any
 from pydantic import BaseModel, ValidationError
-import logging
 
 import sys  # Für den Zugriff auf Kommandozeilenargumente
 import re  # Für das Parsen von Argumenten
@@ -13,20 +13,6 @@ import re  # Für das Parsen von Argumenten
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
-use_rich: bool = True
-try:
-    from rich.console import Console  # type: ignore
-    from rich.markdown import Markdown  # type: ignore
-    from rich.pretty import Pretty  # type: ignore
-except:
-    use_rich = False
-use_dotenv: bool = True
-try:
-    from dotenv import load_dotenv  # type: ignore
-except:
-    use_dotenv = False
-
 
 # Define a TypeVar for the Pydantic model itself
 TConfigModel = TypeVar("TConfigModel", bound="ConfigModel")
@@ -133,6 +119,14 @@ class ConfigModel(BaseModel):
         return f
 
     @classmethod
+    def _get_possible_cli_argsname(cls) -> list[str]:
+        r = []
+        for m in cls.get_metadata():
+            if m.type in ["str", "int", "float", "bool"]:  # skip lists and dicts
+                r.append(m.fullanme)
+        return r
+    
+    @classmethod
     def _add_flat_key_value_to_nested_dict(
         cls, target_dict: dict, full_name: str, value: Any, field_seperator: str
     ):
@@ -228,61 +222,40 @@ class ConfigModel(BaseModel):
                 logging.debug(f"🔧 json-file '{json_file_path}' not found, skipped")
         return json_config
 
+
     @classmethod
     def _load_cli(cls, prefix: str, sep: str) -> dict:
         # Loads configuration from CLI arguments using a manual parser. This approach avoids argparse's ambiguous option matching (argprase meckert bei: tsc_user & tsc_user__uersnem, tsc_user__password). ?!)
         cli_config = {}
         prefix_lower = prefix.lower()
 
-        # Ein Mapping von vollständigen CLI-Flag-Namen zu ihren Metadaten. Beispiel: {"--tsc_user__username": ConfigAttrMetadata(...)}
-        registered_cli_flags_map: dict[str, ConfigAttrMetadata] = {}
-        for m in cls.get_metadata():
-            # Nur für Typen, die wir manuell parsen wollen (str, int, float, bool)
-            if m.type in ["str", "int", "float", "bool"]:
+        registered_cli_flags_map: dict[str, ConfigAttrMetadata] = {}  # Ein Mapping von vollständigen CLI-Flag-Namen zu ihren Metadaten. Beispiel: {"--tsc_user__username": ConfigAttrMetadata(...)}
+        for m in cls.get_metadata():            
+            if m.fullanme in cls._get_possible_cli_argsname():
                 full_cli_flag_name = "--" + prefix_lower + m.fullanme
                 registered_cli_flags_map[full_cli_flag_name] = m
 
-        # sys.argv enthält das Skript selbst an Position 0. Wir wollen nur die Argumente danach.
-        args_to_parse = sys.argv[1:]
 
         i = 0
+        args_to_parse = sys.argv[1:] # sys.argv enthält das Skript selbst an Position 0. Wir wollen nur die Argumente danach.
         loaded_cli_params_log: list[str] = []
         unknown_args: list[str] = []
-
         while i < len(args_to_parse):
             arg = args_to_parse[i]
+
             ## Muster 1: --key=value
             match_equal = re.match(r"^(--[^=]+)=(.+)$", arg)
             if match_equal:
                 key_name = match_equal.group(1)  # z.B. --tsc_user__username
                 value_str = match_equal.group(2)
-
                 if key_name in registered_cli_flags_map:
                     metadata_obj = registered_cli_flags_map[key_name]
                     try:
-                        # Manuelle Typumwandlung basierend auf dem Metadaten-Typ
-                        value: Any
-                        if metadata_obj.type == "int":
-                            value = int(value_str)
-                        elif metadata_obj.type == "float":
-                            value = float(value_str)
-                        elif metadata_obj.type == "bool":
-                            # Konvertierung von String zu Bool
-                            value = value_str.lower() in ["true", "1", "yes"]
-                        else:  # 'str' oder jeder andere Fallback
-                            value = value_str
-                        # Rekonstruiere den originalen vollen Namen ohne Präfix
-                        original_full_name = key_name[
-                            len(prefix_lower) + 2 :
-                        ]  # +2 für "--"
-                        cls._add_flat_key_value_to_nested_dict(
-                            cli_config, original_full_name, value, sep
-                        )
+                        original_full_name = key_name[len(prefix_lower) + 2 :]  # +2 für "--"
+                        cls._add_flat_key_value_to_nested_dict(cli_config, original_full_name, value_str, sep)
                         loaded_cli_params_log.append(key_name)
                     except ValueError:
-                        logging.warning(
-                            f"🔧 cli-argument '{key_name}' with value '{value_str}' could not converted to '{metadata_obj.type}', skipped."
-                        )
+                        logging.warning(f"🔧 cli-argument '{key_name}' with value '{value_str}' could not converted to '{metadata_obj.type}', skipped.")
                 else:
                     # Dies ist ein Flag, das nicht in unserer registrierten Liste ist
                     unknown_args.append(arg)
@@ -291,45 +264,26 @@ class ConfigModel(BaseModel):
                 key_name = arg  # z.B. --tsc_version
                 if key_name in registered_cli_flags_map:
                     # Prüfen, ob der nächste Wert existiert und kein weiteres Flag ist
-                    if i + 1 < len(args_to_parse) and not args_to_parse[
-                        i + 1
-                    ].startswith("--"):
+                    if i + 1 < len(args_to_parse) and not args_to_parse[i + 1].startswith("--"):
                         value_str = args_to_parse[i + 1]
                         metadata_obj = registered_cli_flags_map[key_name]
                         try:
-                            value: Any
-                            if metadata_obj.type == "int":
-                                value = int(value_str)
-                            elif metadata_obj.type == "float":
-                                value = float(value_str)
-                            elif metadata_obj.type == "bool":
-                                value = value_str.lower() in ["true", "1", "yes"]
-                            else:  # 'str'
-                                value = value_str
                             original_full_name = key_name[len(prefix_lower) + 2 :]
-                            cls._add_flat_key_value_to_nested_dict(
-                                cli_config, original_full_name, value, sep
-                            )
+                            cls._add_flat_key_value_to_nested_dict(cli_config, original_full_name, value_str, sep)
                             loaded_cli_params_log.append(key_name)
                             i += 1  # Den nächsten Arg (Wert) überspringen, da er konsumiert wurde
                         except ValueError:
-                            logging.warning(
-                                f"🔧 cli-argument '{key_name}' with value '{value_str}' could not converted to '{metadata_obj.type}', skipped."
-                            )
+                            logging.warning(f"🔧 cli-argument '{key_name}' with value '{value_str}' could not converted to '{metadata_obj.type}', skipped.")
                     else:
-                        logging.warning(
-                            f"🔧 cli-argument '{key_name}' has no value, skipped."
-                        )
+                        logging.warning(f"🔧 cli-argument '{key_name}' has no value, skipped.")
                 else:
                     unknown_args.append(arg)  # Unbekanntes Flag
             else:
                 # Alles andere, was kein '--' am Anfang hat, als unbekannt behandeln
                 unknown_args.append(arg)
-
             i += 1  # Zum nächsten cli-Argument springen
-        logging.debug(
-            f"🔧 data loaded from cli-arguments (prefix='{prefix}'): [{', '.join(loaded_cli_params_log)}], ignored unknown [{', '.join(unknown_args)}]"
-        )
+
+        logging.debug(f"🔧 data loaded from cli-arguments (prefix='{prefix}'): [{', '.join(loaded_cli_params_log)}], ignored unknown [{', '.join(unknown_args)}]")
         return cli_config
 
     @classmethod
@@ -337,42 +291,25 @@ class ConfigModel(BaseModel):
         env_config = {}
         prefix = prefix.upper()
         loaded_env_vars = []
+        # TODO: dotenv
         # from dotenv import load_dotenv
         # if hasattr(cls, 'use_dotenv') and cls.use_dotenv: # Placeholder for how 'use_dotenv' might be accessed
         #     load_dotenv()
 
-        # check every possible env-var. only accept base-types (str, int,..) to be set in cli/env
-        for m in cls.get_metadata():
-            env_name = prefix + m.fullanme.upper()
+        # check only possible env-vars: cli-interface accepts only base-types (str, int,..)
+        for fn in cls._get_possible_cli_argsname():
+            env_name = prefix + fn.upper()
             env_value = os.getenv(env_name)
             if env_value is not None:  # skip unset env-var
-                if m.type in ["str", "int", "float", "bool"]:  # skip lists and dicts
-                    loaded_env_vars.append(env_name)
-                    cls._add_flat_key_value_to_nested_dict(
-                        env_config, m.fullanme, env_value, sep
-                    )
-        logging.debug(
-            f"🔧 data loaded from env (prefix='{prefix}'): [{', '.join(loaded_env_vars)}]"
-        )
+                loaded_env_vars.append(env_name)
+                cls._add_flat_key_value_to_nested_dict(env_config, fn, env_value, sep)
+        logging.debug(f"🔧 data loaded from env (prefix='{prefix}'): [{', '.join(loaded_env_vars)}]")
         return env_config
-
-    def print_config(self) -> None:
-        """
-        Prints the configuration instance (all nested keys and values). Uses console/cli standard print() or the module 'rich', if installed.
-        """
-        if use_rich:
-            Console().print(Pretty(self, indent_guides=True, indent_size=2))
-        else:
-            logging.debug(f"--- {self.__class__.__name__} ---")
-            logging.debug(
-                self.model_dump_json(indent=2)
-            )  # Using model_dump_json for a readable, indented output
-            logging.debug("----------------------------------\n")
 
     @classmethod
     def print_help(cls):
         """
-        Prints out help (i.e. all fields and their description)
+        Prints out help (i.e. all fields and their type, description)
         """
         m = cls.get_metadata()
         for a in m:

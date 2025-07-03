@@ -2,10 +2,10 @@ from pydantic import BaseModel, Field
 from typesave_config import ConfigModel
 import logging
 
-# from rich.console import Console
-# from rich.markdown import Markdown
-# from rich.pretty import Pretty
-# console = Console()
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.pretty import Pretty
+console = Console()
 
 # Initialize logging
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
@@ -47,8 +47,8 @@ if not conf:
 
 
 
-conf.print_config()
-#console.print(Pretty(conf.get_metadata()))
+print(conf)
+console.print(Pretty(conf))
 #print(conf.user.username, conf.user.password)
 #conf.project_nameversion="OVERWRITTEN"
 #conf.user.password="OVERWRITTEN"
