@@ -46,8 +46,8 @@ if not conf:
     exit(1)
 
 
-
-print(conf)
+print(conf._get_possible_cli_argsname())
+#print(conf)
 console.print(Pretty(conf))
 #print(conf.user.username, conf.user.password)
 #conf.project_nameversion="OVERWRITTEN"

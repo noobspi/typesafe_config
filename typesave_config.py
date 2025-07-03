@@ -120,6 +120,7 @@ class ConfigModel(BaseModel):
 
     @classmethod
     def _get_possible_cli_argsname(cls) -> list[str]:
+        """Returns: list of fullnames, that are allowed in cli-interface"""
         r = []
         for m in cls.get_metadata():
             if m.type in ["str", "int", "float", "bool"]:  # skip lists and dicts
@@ -222,75 +223,41 @@ class ConfigModel(BaseModel):
                 logging.debug(f"🔧 json-file '{json_file_path}' not found, skipped")
         return json_config
 
-
     @classmethod
     def _load_cli(cls, prefix: str, sep: str) -> dict:
-        # Loads configuration from CLI arguments using a manual parser. This approach avoids argparse's ambiguous option matching (argprase meckert bei: tsc_user & tsc_user__uersnem, tsc_user__password). ?!)
-        cli_config = {}
-        prefix_lower = prefix.lower()
-
-        registered_cli_flags_map: dict[str, ConfigAttrMetadata] = {}  # Ein Mapping von vollständigen CLI-Flag-Namen zu ihren Metadaten. Beispiel: {"--tsc_user__username": ConfigAttrMetadata(...)}
-        for m in cls.get_metadata():            
-            if m.fullanme in cls._get_possible_cli_argsname():
-                full_cli_flag_name = "--" + prefix_lower + m.fullanme
-                registered_cli_flags_map[full_cli_flag_name] = m
-
-
-        i = 0
-        args_to_parse = sys.argv[1:] # sys.argv enthält das Skript selbst an Position 0. Wir wollen nur die Argumente danach.
-        loaded_cli_params_log: list[str] = []
+        # Loads configuration from CLI arguments using a manual parser. Allowing only "--key=value" pattern 
+        cli_prefix = "--" + prefix.lower()
+        cli_possible_argnames = cls._get_possible_cli_argsname()
+        loaded_args: list[str] = []
         unknown_args: list[str] = []
-        while i < len(args_to_parse):
-            arg = args_to_parse[i]
-
-            ## Muster 1: --key=value
-            match_equal = re.match(r"^(--[^=]+)=(.+)$", arg)
-            if match_equal:
-                key_name = match_equal.group(1)  # z.B. --tsc_user__username
-                value_str = match_equal.group(2)
-                if key_name in registered_cli_flags_map:
-                    metadata_obj = registered_cli_flags_map[key_name]
-                    try:
-                        original_full_name = key_name[len(prefix_lower) + 2 :]  # +2 für "--"
-                        cls._add_flat_key_value_to_nested_dict(cli_config, original_full_name, value_str, sep)
-                        loaded_cli_params_log.append(key_name)
-                    except ValueError:
-                        logging.warning(f"🔧 cli-argument '{key_name}' with value '{value_str}' could not converted to '{metadata_obj.type}', skipped.")
+        
+        cli_config = {}
+        args_to_parse = sys.argv[1:]
+        for arg in args_to_parse:
+            match_equal = re.match(r"^(--[^=]+)=(.+)$", arg)  # only allow pattern --key=value
+            if match_equal: 
+                arg_key = match_equal.group(1)  # --tsc_user__username
+                arg_value = match_equal.group(2)
+                key_fullname = arg_key[len(cli_prefix):] # user__username
+                if key_fullname in cli_possible_argnames:
+                    cls._add_flat_key_value_to_nested_dict(cli_config, key_fullname, arg_value, sep)
+                    loaded_args.append(arg_key)
                 else:
-                    # Dies ist ein Flag, das nicht in unserer registrierten Liste ist
                     unknown_args.append(arg)
-            ## Muster 2: --key value
-            elif arg.startswith("--"):
-                key_name = arg  # z.B. --tsc_version
-                if key_name in registered_cli_flags_map:
-                    # Prüfen, ob der nächste Wert existiert und kein weiteres Flag ist
-                    if i + 1 < len(args_to_parse) and not args_to_parse[i + 1].startswith("--"):
-                        value_str = args_to_parse[i + 1]
-                        metadata_obj = registered_cli_flags_map[key_name]
-                        try:
-                            original_full_name = key_name[len(prefix_lower) + 2 :]
-                            cls._add_flat_key_value_to_nested_dict(cli_config, original_full_name, value_str, sep)
-                            loaded_cli_params_log.append(key_name)
-                            i += 1  # Den nächsten Arg (Wert) überspringen, da er konsumiert wurde
-                        except ValueError:
-                            logging.warning(f"🔧 cli-argument '{key_name}' with value '{value_str}' could not converted to '{metadata_obj.type}', skipped.")
-                    else:
-                        logging.warning(f"🔧 cli-argument '{key_name}' has no value, skipped.")
-                else:
-                    unknown_args.append(arg)  # Unbekanntes Flag
             else:
-                # Alles andere, was kein '--' am Anfang hat, als unbekannt behandeln
+                # Treat any other format as unknown/unsupported
                 unknown_args.append(arg)
-            i += 1  # Zum nächsten cli-Argument springen
 
-        logging.debug(f"🔧 data loaded from cli-arguments (prefix='{prefix}'): [{', '.join(loaded_cli_params_log)}], ignored unknown [{', '.join(unknown_args)}]")
+        logging.debug(f"🔧 data loaded from cli-arguments (prefix='{prefix}'): [{', '.join(loaded_args)}], irgnored [{', '.join(unknown_args)}]")
         return cli_config
+
 
     @classmethod
     def _load_env(cls, prefix: str, sep: str) -> dict:
         env_config = {}
         prefix = prefix.upper()
         loaded_env_vars = []
+
         # TODO: dotenv
         # from dotenv import load_dotenv
         # if hasattr(cls, 'use_dotenv') and cls.use_dotenv: # Placeholder for how 'use_dotenv' might be accessed
