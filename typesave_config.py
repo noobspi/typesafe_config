@@ -58,7 +58,7 @@ class ConfigModel(BaseModel):
     ```
 
     You can can load any missing (or secret) configuration-data before runtime, by using the
-    cli-interface (env-vars and/or cli-arguments)
+    cli-interface (env-vars and/or cli-arguments). The cli-interface is case insensitiv.
 
     $ TSC_USERNAME="root" python main.py --tsc_password="123"
     """
@@ -120,8 +120,8 @@ class ConfigModel(BaseModel):
 
     @classmethod
     def _get_possible_cli_argsname(cls) -> list[str]:
-        """Returns: list of fullnames, that are allowed in cli-interface"""
-        r = []
+        """Returns: list of lower(fullname), that are allowed in cli-interface"""
+        r:list[str] = []
         for m in cls.get_metadata():
             if m.type in ["str", "int", "float", "bool"]:  # skip lists and dicts
                 r.append(m.fullanme)
@@ -225,7 +225,7 @@ class ConfigModel(BaseModel):
 
     @classmethod
     def _load_cli(cls, prefix: str, sep: str) -> dict:
-        # Loads configuration from CLI arguments using a manual parser. Allowing only "--key=value" pattern 
+        # Loads configuration from CLI arguments using a manual parser. Allowing only "--key=value" (key is case-insensitive) pattern.
         cli_prefix = "--" + prefix.lower()
         cli_possible_argnames = cls._get_possible_cli_argsname()
         loaded_args: list[str] = []
@@ -239,8 +239,9 @@ class ConfigModel(BaseModel):
                 arg_key = match_equal.group(1)  # --tsc_user__username
                 arg_value = match_equal.group(2)
                 key_fullname = arg_key[len(cli_prefix):] # user__username
-                if key_fullname in cli_possible_argnames:
-                    cls._add_flat_key_value_to_nested_dict(cli_config, key_fullname, arg_value, sep)
+                field_name = next((key for key in cli_possible_argnames if key.lower() == key_fullname.lower()), None)
+                if not field_name is None: # user_UserName or None
+                    cls._add_flat_key_value_to_nested_dict(cli_config, field_name, arg_value, sep)
                     loaded_args.append(arg_key)
                 else:
                     unknown_args.append(arg)
@@ -254,8 +255,10 @@ class ConfigModel(BaseModel):
 
     @classmethod
     def _load_env(cls, prefix: str, sep: str) -> dict:
+        # loads env-vars. not case-sensitive!
         env_config = {}
-        prefix = prefix.upper()
+        cli_possible_argnames = cls._get_possible_cli_argsname()
+        prefix_upper = prefix.upper()
         loaded_env_vars = []
 
         # TODO: dotenv
@@ -264,8 +267,8 @@ class ConfigModel(BaseModel):
         #     load_dotenv()
 
         # check only possible env-vars: cli-interface accepts only base-types (str, int,..)
-        for fn in cls._get_possible_cli_argsname():
-            env_name = prefix + fn.upper()
+        for fn in cli_possible_argnames:
+            env_name = prefix_upper + fn.upper()
             env_value = os.getenv(env_name)
             if env_value is not None:  # skip unset env-var
                 loaded_env_vars.append(env_name)

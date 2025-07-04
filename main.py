@@ -17,8 +17,8 @@ class AppConfig__Prompt(BaseModel):
     value: int = Field(..., description="A numerical value associated with the prompt.")
 
 class AppConfig__User(BaseModel):
-    username: str = Field('anonym', description="The username.")
-    password: str = Field(..., description="The password. required.")
+    UserName: str = Field('anonym', description="The username.")
+    PassWord: str = Field(..., description="The password. required.")
 
 class AppConfig(ConfigModel): 
     project_name: str = Field(..., description="The name of the Python project.")
@@ -35,7 +35,7 @@ class AppConfig(ConfigModel):
 
 
 conf = AppConfig.load(toml_files=['test_conf.toml', 'a.toml'], 
-                      json_files=['a.json', 'b.json'],
+                      #json_files=['a.json', 'b.json'],
                       data={'version':'0.1 alpha'},
                       load_cli=True,
                       load_env=True,
@@ -46,7 +46,7 @@ if not conf:
     exit(1)
 
 
-print(conf._get_possible_cli_argsname())
+
 #print(conf)
 console.print(Pretty(conf))
 #print(conf.user.username, conf.user.password)
