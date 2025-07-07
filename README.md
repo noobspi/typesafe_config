@@ -40,7 +40,13 @@ class MyAppConfig(ConfigModel):
 A defined, or secretly missing, value in a config-file can be overwritten by the cli-interface.
 
 ```python
-conf = MyAppConfig.load(toml_files=['myconf.toml'])
+conf = AppConfig.load(toml_files=['test_conf.toml'], 
+                      #json_files=['a.json', 'b.json'],
+                      #data={'url':'https://google.com'},
+                      load_cli=True,
+                      load_env=True,
+                      readonly=True,
+                      )
 ```
 
 🔧 **3. Access key/value pairs the fully pydantic/typed way**, including intellisense support in your favorite IDE, like vscode or PyCharm. Your configuration is basically a [pydantic-model](https://docs.pydantic.dev/latest/concepts/models/), so you are free to specify each [field](https://docs.pydantic.dev/latest/api/fields/) with defaults, description, validating conditions and much more. All the hard stuff will be handled by pydantic's [BaseModel](https://docs.pydantic.dev/latest/api/base_model/).

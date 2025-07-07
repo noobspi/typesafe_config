@@ -1,12 +1,10 @@
 [project]
-name = "typed-config"
+name = "typesave-config"
 version = "0.1.0"
-description = "Add your description here"
+description = "TypeSafe-Config is an easy-to-use python appplication configuration-management system with fully support for python's type-hints used by your IDE. Thanks to pydantic :-*"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "ipykernel>=6.29.5",
     "pip>=25.1.1",
-    "pydantic>=2.11.7",
-    "rich>=14.0.0",
+    "pydantic>=2.11.7"
 ]

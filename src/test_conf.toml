@@ -6,8 +6,8 @@ allowed_hosts = ["prod.example.com", "api.example.com"]
 #port = 8080
 
 [user]
-username = "root"
-password = "12345678"
+username = "test-user"
+password = "test-pwd"
 
 [[prompts]]
 name = "greeting"

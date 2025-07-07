@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typesave_config import ConfigModel
+from typesafe_config import ConfigModel
 import logging
 
 from rich.console import Console
