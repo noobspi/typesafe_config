@@ -51,7 +51,7 @@ if conf.verbose:
 conf.url="https://a.com/" # raises error at runtime, when set to be readonly (the default)
 ```
 
-🔧 **4. Use the cli-interface for secreets** and other data, that should not be included in the config-files. Think of database-connections, username, password, api-keys, etc. Hint: `list`and `dict` themselves can't be set by the cli-interface 🤷. However, nested pydantic-models are supported 😄
+🔧 **4. Use the cli-interface for secreets** and other data, that should not be included in the config-files. Think of database-connections, username, password, api-keys, etc. The cli-interface (env-vars and cli-argument) are case insensitive. Hint: `list`and `dict` themselves can't be set by the cli-interface 🤷. However, nested pydantic-models are supported 😄
 
 ```bash
 TSC_LOGIN__USERNAME="root" python main.py --tsc_login__password="12345678"

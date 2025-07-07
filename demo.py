@@ -32,8 +32,6 @@ class AppConfig(ConfigModel):
     prompts: list[AppConfig__Prompt] = Field(..., description="A list of prompt configurations.")
 # --- / define application specific configuration  ---
 
-
-
 conf = AppConfig.load(toml_files=['test_conf.toml', 'a.toml'], 
                       #json_files=['a.json', 'b.json'],
                       data={'version':'0.1 alpha'},
@@ -41,6 +39,7 @@ conf = AppConfig.load(toml_files=['test_conf.toml', 'a.toml'],
                       load_env=True,
                       readonly=True,
                       )
+
 if not conf:
     #AppConfig.print_help()
     exit(1)
