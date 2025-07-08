@@ -1,2 +1,2 @@
-from .typesave_config import ConfigModel
-from .typesave_config import ConfigAttrMetadata
+from .typesafe_config import ConfigModel
+from .typesafe_config import ConfigAttrMetadata

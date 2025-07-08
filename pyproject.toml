@@ -1,10 +1,16 @@
 [project]
-name = "typesave-config"
+name = "typesafe-config"
 version = "0.1.0"
-description = "TypeSafe-Config is an easy-to-use python appplication configuration-management system with fully support for python's type-hints used by your IDE. Thanks to pydantic :-*"
+description = "TypeSafe-Config is an easy-to-use python appplication configuration-management system with fully support for python's type-hints used by your IDE. Thanks to pydantic :-*. Loads the configuration-data from toml- or json-files, cli-arguments and env-vars, in that order. [python >=3.11 for tomllib]"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "pip>=25.1.1",
     "pydantic>=2.11.7"
 ]
+
+[build-system]
+requires = ["uv_build>=0.7.19,<0.8.0"]
+build-backend = "uv_build"
+# [tool.uv.build-backend]
+# source-include = ["tests/**"]
