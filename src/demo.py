@@ -14,24 +14,27 @@ logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
 
 
 # --- define application specific configuration  ---
-class AppConfig__Prompt(BaseModel):
+class AppConfigPrompt(BaseModel):
+    """Configuration sub-table prompt"""
     name: str = Field(..., description="The name or identifier for the prompt.")
     value: int = Field(..., description="A numerical value associated with the prompt.")
 
-class AppConfig__User(BaseModel):
+class AppConfigUser(BaseModel):
+    """Configuration sub-table user"""
     UserName: str = Field('anonym', description="The username.")
     PassWord: str = Field(..., description="The password. required.")
 
-class AppConfig(ConfigModel): 
+class AppConfig(ConfigModel):
+    """Configuration main-table"""
     project_name: str = Field(..., description="The name of the Python project.")
     version: str = Field(..., description="The name of the Python project.")
-    user: AppConfig__User = Field(..., description="Current logged in user..")
+    user: AppConfigUser = Field(..., description="Current logged in user..")
     database_url: str = Field(..., description="The connection string for the database.")
     debug_mode: bool = Field(..., description="Indicates if debug mode is enabled.")
     allowed_hosts: list[str] = Field(..., description="A list of allowed hostnames for the application.")
     port: int = Field(..., description="The port number on which the application will run.")
     weight: float = Field(..., description="The weight of the logged in user.")
-    prompts: list[AppConfig__Prompt] = Field(..., description="A list of prompt configurations.")
+    prompts: list[AppConfigPrompt] = Field(..., description="A list of prompt configurations.")
     dt_field: datetime = Field(datetime(2024,12,31,12,34))
     d_field: date = Field(datetime(2024,12,30))
 # --- / define application specific configuration  ---
@@ -58,5 +61,3 @@ console.print(Pretty(conf))
 #conf.prompts[0].name="OVERWRITTEN"
 #conf.print_config()
 #conf.print_help()
-
-

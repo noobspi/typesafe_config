@@ -1,5 +1,5 @@
 """
-    Easy to use and type-safe configuration-management-system for your python-projects, based on pydantic-models.
+Easy to use and type-safe configuration-management-system. Based on pydantic-models.
 """
 import os
 import sys
@@ -38,12 +38,14 @@ class ConfigModel(BaseModel):
     Super-Easy and Type-Safe Configuration for your python-projects
 
     Your specific application configurations should inherit from this 'ConfigModel' class.
-    The ConfigModel itself is simply a Pydantic model. Therefore your configuration-definition is a pydantic BaseModel.
-    Pydantic will do all the hard stuff (python type-hints, validating data, when assigning to a field,...).
+    The ConfigModel itself is simply a Pydantic model. Therefore your configuration-definition 
+    is a pydantic BaseModel. Pydantic will do all the hard stuff (python type-hints, 
+    validating data, when assigning to a field,...).
 
     ConfigModel loads data from different sources and merge them together, in that order:
       source-code, toml-file(s), json-file(s), cli-parameter, env-vars
-    So, a config-fields defined in a toml-file can be overwritten by the cli-params and the env-vars.
+    This also means, that a config-field defined in a toml-file can be overwritten 
+    by the cli-params and the env-vars.
 
     Basic Usage:
     ```
@@ -137,10 +139,11 @@ class ConfigModel(BaseModel):
         return r
 
     @classmethod
-    def _add_fullname_as_nested_dict(cls, target_dict: dict, full_name: str, value: Any, field_seperator: str):
+    def _add_fullname_as_nested_dict(cls, target_dict: dict,
+                                     full_name: str, value: Any, field_seperator: str):
         """
-        Reconstructs a nested dictionary structure from a flat key (e.g., "prompts__name") and a value.
-        Updates the target_dict in place.
+        Reconstructs a nested dictionary structure from a flat key (e.g., "prompts__name") 
+        and a value. Updates the target_dict in place.
         """
         parts = full_name.split(field_seperator)
         current_level = target_dict
@@ -173,8 +176,9 @@ class ConfigModel(BaseModel):
     @classmethod
     def _set_frozen(cls, model: Type[BaseModel]) -> None:
         """
-        Sets the "frozen-mode" recursivly foreach pydantic ConfigModel/BaseModel or list of BaseModels
-        This provents overwriting the configuration after loading the data. Instead it raises a pydantic_core.ValidationError
+        Sets the "frozen-mode" recursivly foreach pydantic ConfigModel/BaseModel or 
+        list of BaseModels. This provents overwriting the configuration after loading the data. 
+        Instead it raises a pydantic_core.ValidationError.
         """
         for _n, info in sorted(model.model_fields.items()):
             f_type = info.annotation
@@ -227,7 +231,10 @@ class ConfigModel(BaseModel):
 
     @classmethod
     def _load_cli(cls, prefix: str, sep: str) -> dict:
-        # Loads configuration from CLI arguments using a manual parser. Allowing only "--key=value" (key is case-insensitive) pattern.
+        """
+        Loads configuration from CLI arguments using a manual parser. 
+        Allowing only "--key=value" (key is case-insensitive) pattern.
+        """
         cli_prefix = "--" + prefix.lower()
         cli_possible_argnames = cls._get_possible_cli_argsname()
         loaded_args: list[str] = []
