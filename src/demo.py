@@ -1,13 +1,15 @@
-from pydantic import BaseModel, Field
-from typesafe_config import ConfigModel
 import logging
+import sys
+from datetime import datetime, date
+from pydantic import BaseModel, Field
 
 from rich.console import Console
-from rich.markdown import Markdown
 from rich.pretty import Pretty
-console = Console()
+#from rich.markdown import Markdown
 
-# Initialize logging
+from typesafe_config import ConfigModel
+
+
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
 
 
@@ -30,9 +32,11 @@ class AppConfig(ConfigModel):
     port: int = Field(..., description="The port number on which the application will run.")
     weight: float = Field(..., description="The weight of the logged in user.")
     prompts: list[AppConfig__Prompt] = Field(..., description="A list of prompt configurations.")
+    dt_field: datetime = Field(datetime(2024,12,31,12,34))
+    d_field: date = Field(datetime(2024,12,30))
 # --- / define application specific configuration  ---
 
-conf = AppConfig.load(toml_files=['test_conf.toml', 'a.toml'], 
+conf = AppConfig.load(toml_files=['test_conf.toml', 'a.toml'],
                       #json_files=['a.json', 'b.json'],
                       data={'version':'0.1 alpha'},
                       load_cli=True,
@@ -42,8 +46,8 @@ conf = AppConfig.load(toml_files=['test_conf.toml', 'a.toml'],
 
 if not conf:
     #AppConfig.print_help()
-    exit(1)
-
+    sys.exit(1)
+console = Console()
 
 
 #print(conf)
