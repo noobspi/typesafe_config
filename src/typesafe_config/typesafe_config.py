@@ -1,6 +1,4 @@
-"""
-Easy to use and type-safe configuration-management-system. Based on pydantic-models.
-"""
+"""Easy to use and type-safe configuration-management-system. Based on pydantic-models."""
 import os
 import sys
 import re
@@ -8,7 +6,7 @@ from pathlib import Path
 import logging
 import tomllib
 import json
-from typing import TypeVar, Type, get_args, Any, get_origin
+from typing import ClassVar, TypeVar, Type, get_args, Any, get_origin
 
 from pydantic import BaseModel, ValidationError
 
@@ -69,6 +67,8 @@ class ConfigModel(BaseModel):
 
     $ TSC_USERNAME="root" python main.py --tsc_password="123"
     """
+
+    _loaded_config: ClassVar[type(ConfigModelT)] = None   # type: ignore
 
     @classmethod
     def _get_attr_metadata(
@@ -319,7 +319,8 @@ class ConfigModel(BaseModel):
             source-code , toml-file, json-file, cli-parameter, env-vars.
 
         Returns:
-            ConfigModel: A new configuration instance, preloaded and validated by pydantic. Or None, if validation had errors.
+            ConfigModel: A new configuration instance, preloaded and validated by pydantic. 
+            Or None, if validation had errors.
 
         Parameters:
             toml_files: TOML files to load; don't use TOML if list is empty.
@@ -330,6 +331,10 @@ class ConfigModel(BaseModel):
             readonly:   Returned configuraion is read-only/frozen, if True.
             prefix: Prefix for env-vars and cli-args. Hint: don't use an empty prefix for env-vars.
         """
+        if cls._loaded_config is not None:
+            logging.debug("🔧 re-use previously loaded configuration")
+            return cls._loaded_config
+
         field_seperator: str = "__"
         pydantic_model: Type[ConfigModelT] = cls
 
@@ -352,6 +357,8 @@ class ConfigModel(BaseModel):
                 cls._set_frozen(cls)
 
             logging.info("🔧 %s(ConfigModel) loaded, readonly=%s", pydantic_model.__name__, readonly)
+            
+            cls._loaded_config = loaded_configmodel
             return loaded_configmodel
         except ValidationError as e:
             err_str = []

@@ -57,7 +57,12 @@ console = Console()
 console.print(Pretty(conf))
 #print(conf.user.username, conf.user.password)
 #conf.project_nameversion="OVERWRITTEN"
-#conf.user.password="OVERWRITTEN"
+#conf.user.PassWord="OVERWRITTEN"
 #conf.prompts[0].name="OVERWRITTEN"
 #conf.print_config()
 #conf.print_help()
+
+conf2 = AppConfig.load()
+conf2 = AppConfig.load()
+
+console.print(Pretty(conf2))
